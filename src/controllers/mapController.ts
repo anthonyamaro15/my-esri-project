@@ -38,6 +38,8 @@ class MapController {
     #map?: __esri.Map;
     #mapview?: __esri.MapView;
     #thermalLayer?: __esri.FeatureLayer;
+    #testLayer?: __esri.FeatureLayer;
+    #swipe?: __esri.Swipe;
     #popupTemplate?: __esri.PopupTemplate;
     #brightnessLayer?: any;
 
@@ -49,8 +51,9 @@ class MapController {
             MapView, 
             FeatureLayer, 
             PopupTemplate, 
-            Expand
-        ] = await loadModules(['esri/Map', 'esri/views/MapView', 'esri/layers/FeatureLayer', 'esri/PopupTemplate', 'esri/widgets/Expand']);
+            Expand,
+            Swipe
+        ] = await loadModules(['esri/Map', 'esri/views/MapView', 'esri/layers/FeatureLayer', 'esri/PopupTemplate', 'esri/widgets/Expand', 'esri/widgets/Swipe']);
 
         this.#map = new Map({
             basemap: 'gray-vector'
@@ -65,11 +68,23 @@ class MapController {
             popupTemplate: this.#popupTemplate
         });
 
+        this.#testLayer = new FeatureLayer({
+            url: "https://services.arcgis.com/EDxZDh4HqQ1a9KvA/arcgis/rest/services/Fires_Mock_Layer/FeatureServer/0"
+        });
+        // this.#testLayer?.visible = true;
+
         this.#mapview = new MapView({
             container: domRef.current,
             map: this.#map,
             center: [-87.66453728281347, 41.840392306471315],
             zoom: 4
+        });
+
+        this.#swipe = new Swipe({
+            leadingLayers: [this.#thermalLayer],
+            trailingLayers: [this.#testLayer],
+            position:  35,
+            view: this.#mapview
         });
 
         this.#mapview?.when(() => {
@@ -101,6 +116,11 @@ class MapController {
                 this.#mapview?.ui.add(expand, 'top-left');
             });
         });
+
+        if(!this.#swipe) return;
+        if(!this.#testLayer) return;
+        this.#mapview?.ui.add(this.#swipe);
+        this.#map?.add(this.#testLayer);
     }
 
     filterData(e: any, layerView: any) {
