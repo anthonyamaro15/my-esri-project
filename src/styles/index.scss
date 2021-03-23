@@ -1,0 +1,30 @@
+// @import "@arcgis/core/assets/esri/themes/dark/main.css";
+
+* {
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body,
+.app-container {
+  overflow: hidden;
+  position: fixed;
+  width: 100vw;
+  margin: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+
+  .mapview-container {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+
+  .mapview {
+    height: 100%;
+    width: 100%;
+  }
+  }
+}
