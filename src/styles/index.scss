@@ -28,3 +28,27 @@ body,
   }
   }
 }
+
+#brightness-filter {
+	height: 160px;
+	width: 100%;
+	visibility: hidden;
+}
+
+.brightness {
+	width: 100%;
+	padding: 12px;
+	text-align: center;
+	vertical-align: baseline;
+	cursor: pointer;
+	height: 55px;
+	width: 100px;
+}
+
+.brightness:focus {
+	background-color: dimgrey;
+}
+
+.brightness:hover {
+	background-color: dimgrey;
+}
