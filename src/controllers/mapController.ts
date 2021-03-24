@@ -3,15 +3,59 @@ import { RefObject } from "react";
 
 setDefaultOptions({ css: true, version: '4.18' });
 
+const colorVisVar = {
+    "type": "color",
+    "field": "BRIGHT_T31",
+    "valueExpression": null,
+    "stops": [
+      {
+        "value": 280,
+        "color": 'red',
+        "label": "> 280"
+      },
+      {
+        "value": 290,
+        "color": "blue",
+        "label": "> 290"
+      },
+      {
+        "value": 300,
+        "color": 'brown',
+        "label": "> 300"
+      }
+    ]
+  };
+
+const sizeVisVar = {
+    type: 'size',
+    field: "BRIGHT_T31",
+    legendOptions: {
+        title: "% by brightness",
+    },
+    stops: [
+        {
+            value: 280,
+            size: 6
+        },
+        {
+            value: 290,
+            size: 3
+        },
+        {
+            value: 300,
+            size: 10
+        },
+    ]
+}
 
 const renderer = {
     type: 'simple',
     symbol: {
         type: 'simple-marker',
         size: 7,
-        color: [255, 128, 9, 0.1],
+        color: [255, 128, 9, 0.6],
         outline: {
-            width: 1,
+            width: 0.1,
             color: 'blue'
         }
     },
@@ -34,6 +78,19 @@ const popUpTemplate = {
         </ul>`
 }
 
+const rendererTwo = {
+    type: 'simple',
+    symbol: {
+        type: 'simple-marker',
+        size: 7,
+        outline: {
+            width: 1,
+            color: 'pink'
+        }
+    },
+    visualVariables: [colorVisVar, sizeVisVar]
+}
+
 class MapController {
     #map?: __esri.Map;
     #mapview?: __esri.MapView;
@@ -52,8 +109,9 @@ class MapController {
             FeatureLayer, 
             PopupTemplate, 
             Expand,
-            Swipe
-        ] = await loadModules(['esri/Map', 'esri/views/MapView', 'esri/layers/FeatureLayer', 'esri/PopupTemplate', 'esri/widgets/Expand', 'esri/widgets/Swipe']);
+            Swipe,
+            Legend
+        ] = await loadModules(['esri/Map', 'esri/views/MapView', 'esri/layers/FeatureLayer', 'esri/PopupTemplate', 'esri/widgets/Expand', 'esri/widgets/Swipe', 'esri/widgets/Legend']);
 
         this.#map = new Map({
             basemap: 'gray-vector'
@@ -69,7 +127,10 @@ class MapController {
         });
 
         this.#testLayer = new FeatureLayer({
-            url: "https://services.arcgis.com/EDxZDh4HqQ1a9KvA/arcgis/rest/services/Fires_Mock_Layer/FeatureServer/0"
+            // url: "https://services.arcgis.com/EDxZDh4HqQ1a9KvA/arcgis/rest/services/Fires_Mock_Layer/FeatureServer/0",
+            url: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/MODIS_Thermal_v1/FeatureServer/0',
+            outFields: ['*'],
+            renderer: rendererTwo
         });
         // this.#testLayer?.visible = true;
 
@@ -81,15 +142,18 @@ class MapController {
         });
 
         this.#swipe = new Swipe({
-            leadingLayers: [this.#thermalLayer],
-            trailingLayers: [this.#testLayer],
+            leadingLayers: [this.#testLayer],
+            trailingLayers: [this.#thermalLayer],
             position:  35,
             view: this.#mapview
         });
 
         this.#mapview?.when(() => {
             if(!this.#thermalLayer) return;
+            if(!this.#testLayer) return;
             this.#map?.add(this.#thermalLayer);
+            this.#map?.add(this.#testLayer);
+
 
             const brightness = document.getElementById('brightness-filter');
             if(!brightness) return;
@@ -115,12 +179,15 @@ class MapController {
 
                 this.#mapview?.ui.add(expand, 'top-left');
             });
+
+            // Add layerInfo on the legend
+            this.#mapview?.ui.add( new Legend({ view: this.#mapview }), 'top-right');
         });
 
         if(!this.#swipe) return;
-        if(!this.#testLayer) return;
+        // if(!this.#testLayer) return;
         this.#mapview?.ui.add(this.#swipe);
-        this.#map?.add(this.#testLayer);
+        // this.#map?.add(this.#testLayer);
     }
 
     filterData(e: any, layerView: any) {
