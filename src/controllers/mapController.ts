@@ -7,6 +7,9 @@ const colorVisVar = {
     "type": "color",
     "field": "BRIGHT_T31",
     "valueExpression": null,
+    legendOptions: {
+        title: "colors"
+    },
     "stops": [
       {
         "value": 280,
@@ -22,6 +25,11 @@ const colorVisVar = {
         "value": 300,
         "color": 'brown',
         "label": "> 300"
+      },
+      {
+        "value": 320,
+        "color": 'lightblue',
+        "label": "> 320"
       }
     ]
   };
@@ -30,20 +38,28 @@ const sizeVisVar = {
     type: 'size',
     field: "BRIGHT_T31",
     legendOptions: {
-        title: "% by brightness",
+        title: "sizes by brightness",
     },
     stops: [
         {
             value: 280,
-            size: 6
+            size: 6,
+            label: "> 280"
         },
         {
             value: 290,
-            size: 3
+            size: 3,
+            label: '> 290'
         },
         {
             value: 300,
-            size: 10
+            size: 10,
+            label: "> 300"
+        },
+        {
+            value: 320,
+            size: 15,
+            label: "> 320"
         },
     ]
 }
@@ -78,6 +94,70 @@ const popUpTemplate = {
         </ul>`
 }
 
+const popUpTemplateTwo = {
+    title: "popup for testLayer",
+    content: [
+        {
+            type: 'fields',
+            fieldInfos: [
+                {
+                    fieldName: 'BRIGHTNESS',
+                    visible: true,
+                    label: "Brightness: "
+                },
+                {
+                    fieldName: 'SCAN',
+                    visible: true,
+                    label: "Scan: "
+                },
+                {
+                    fieldName: 'TRACK',
+                    visible: true,
+                    label: "Track: "
+                },
+                {
+                    fieldName: 'SATELLITE',
+                    visible: true,
+                    label: "Satellite: "
+                },
+                {
+                    fieldName: 'CONFIDENCE',
+                    visible: true,
+                    label: "Confidence: "
+                },
+                {
+                    fieldName: 'VERSION',
+                    visible: true,
+                    label: "Version: "
+                },
+                {
+                    fieldName: 'BRIGHT_T31',
+                    visible: true,
+                    label: "Bright: "
+                },
+                {
+                    fieldName: 'FRP',
+                    visible: true,
+                    label: "FRP: "
+                },
+                {
+                    fieldName: 'ACQ_DATE',
+                    visible: true,
+                    label: "Acq date: "
+                },
+                {
+                    fieldName: 'DAYNIGHT',
+                    visible: true,
+                    label: "Daynight: "
+                },
+            ],
+            // type: 'media'
+        },
+    ],
+
+}
+
+
 const rendererTwo = {
     type: 'simple',
     symbol: {
@@ -98,6 +178,8 @@ class MapController {
     #testLayer?: __esri.FeatureLayer;
     #swipe?: __esri.Swipe;
     #popupTemplate?: __esri.PopupTemplate;
+    #popupTemplateTwo?: __esri.PopupTemplate;
+    #legend?: __esri.Legend;
     #brightnessLayer?: any;
 
     initialMap = async (domRef: RefObject<HTMLDivElement>) => {
@@ -118,6 +200,7 @@ class MapController {
         });
 
         this.#popupTemplate = new PopupTemplate(popUpTemplate);
+        this.#popupTemplateTwo = new PopupTemplate(popUpTemplateTwo);
 
         this.#thermalLayer = new FeatureLayer({
             url: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/MODIS_Thermal_v1/FeatureServer/0',
@@ -130,7 +213,8 @@ class MapController {
             // url: "https://services.arcgis.com/EDxZDh4HqQ1a9KvA/arcgis/rest/services/Fires_Mock_Layer/FeatureServer/0",
             url: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/MODIS_Thermal_v1/FeatureServer/0',
             outFields: ['*'],
-            renderer: rendererTwo
+            renderer: rendererTwo,
+            popupTemplate: this.#popupTemplateTwo
         });
         // this.#testLayer?.visible = true;
 
@@ -148,9 +232,25 @@ class MapController {
             view: this.#mapview
         });
 
+        this.#legend = new Legend({
+            view: this.#mapview,
+            // information to render about the layers
+            layerInfos: [
+                {
+                    layer: this.#thermalLayer,
+                    title: "thermal Layer"
+                },
+                {
+                    layer: this.#testLayer,
+                    title: 'test layer'
+                }
+            ]
+        })
+
         this.#mapview?.when(() => {
             if(!this.#thermalLayer) return;
             if(!this.#testLayer) return;
+            if(!this.#legend) return;
             this.#map?.add(this.#thermalLayer);
             this.#map?.add(this.#testLayer);
 
@@ -181,13 +281,11 @@ class MapController {
             });
 
             // Add layerInfo on the legend
-            this.#mapview?.ui.add( new Legend({ view: this.#mapview }), 'top-right');
+            this.#mapview?.ui.add(this.#legend, 'top-right');
         });
 
         if(!this.#swipe) return;
-        // if(!this.#testLayer) return;
         this.#mapview?.ui.add(this.#swipe);
-        // this.#map?.add(this.#testLayer);
     }
 
     filterData(e: any, layerView: any) {
