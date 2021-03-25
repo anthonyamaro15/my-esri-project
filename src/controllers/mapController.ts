@@ -1,5 +1,7 @@
 import { loadModules, setDefaultOptions } from "esri-loader";
 import { RefObject } from "react";
+import { setMapLoaded } from "../store/slices/mapSlice";
+import store from '../store/store';
 
 setDefaultOptions({ css: true, version: '4.18' });
 
@@ -71,7 +73,7 @@ const renderer = {
         size: 7,
         color: [255, 128, 9, 0.6],
         outline: {
-            width: 0.1,
+            width: 0.2,
             color: 'blue'
         }
     },
@@ -151,7 +153,6 @@ const popUpTemplateTwo = {
                     label: "Daynight: "
                 },
             ],
-            // type: 'media'
         },
     ],
 
@@ -180,6 +181,8 @@ class MapController {
     #popupTemplate?: __esri.PopupTemplate;
     #popupTemplateTwo?: __esri.PopupTemplate;
     #legend?: __esri.Legend;
+    #sketch?: __esri.Sketch;
+    #graphicsLayer?: __esri.GraphicsLayer;
     #brightnessLayer?: any;
 
     initialMap = async (domRef: RefObject<HTMLDivElement>) => {
@@ -192,11 +195,17 @@ class MapController {
             PopupTemplate, 
             Expand,
             Swipe,
-            Legend
-        ] = await loadModules(['esri/Map', 'esri/views/MapView', 'esri/layers/FeatureLayer', 'esri/PopupTemplate', 'esri/widgets/Expand', 'esri/widgets/Swipe', 'esri/widgets/Legend']);
+            Legend,
+            Sketch,
+            GraphicsLayer
+        ] = await loadModules(['esri/Map', 'esri/views/MapView', 'esri/layers/FeatureLayer', 'esri/PopupTemplate', 'esri/widgets/Expand', 'esri/widgets/Swipe', 'esri/widgets/Legend', 'esri/widgets/Sketch', 'esri/layers/GraphicsLayer']);
+
+
+        this.#graphicsLayer = new GraphicsLayer();
 
         this.#map = new Map({
-            basemap: 'gray-vector'
+            basemap: 'gray-vector',
+            // layers: [this.#graphicsLayer]
         });
 
         this.#popupTemplate = new PopupTemplate(popUpTemplate);
@@ -216,13 +225,20 @@ class MapController {
             renderer: rendererTwo,
             popupTemplate: this.#popupTemplateTwo
         });
-        // this.#testLayer?.visible = true;
 
         this.#mapview = new MapView({
             container: domRef.current,
             map: this.#map,
             center: [-87.66453728281347, 41.840392306471315],
-            zoom: 4
+            zoom: 4,
+            // displays popup template on the botom right of the screen
+            popup: {
+                dockEnabled: true,
+                dockOptions: {
+                    position: "bottom-right",
+                    breakpoint: false
+                }
+            }
         });
 
         this.#swipe = new Swipe({
@@ -245,6 +261,22 @@ class MapController {
                     title: 'test layer'
                 }
             ]
+        });
+
+        this.#sketch = new Sketch({
+            layer: this.#graphicsLayer,
+            view: this.#mapview,
+            creationMode: 'update',
+            deafultCreateOptions: {
+                mode: 'hybrid'
+            }
+        });
+
+        this.#sketch?.on('create', (event) => {
+            // const evInfo = event.toolEventInfo;
+            // if(evInfo && evInfo.type === 'cursor-update') {
+            //     console.log(evInfo.type, evInfo.coordinates[0], evInfo.coordinates[1], ' checking');
+            // }
         })
 
         this.#mapview?.when(() => {
@@ -258,10 +290,9 @@ class MapController {
             const brightness = document.getElementById('brightness-filter');
             if(!brightness) return;
 
-            brightness.addEventListener('click', (e) => this.filterData(e, this.#brightnessLayer));
-
             this.#mapview?.whenLayerView(this.#thermalLayer).then(layerView => {
                 this.#brightnessLayer = layerView;
+
 
                 brightness.style.visibility = 'visible';
                 const expand = new Expand({
@@ -279,20 +310,26 @@ class MapController {
 
                 this.#mapview?.ui.add(expand, 'top-left');
             });
+            store.dispatch(setMapLoaded(true));
+
 
             // Add layerInfo on the legend
             this.#mapview?.ui.add(this.#legend, 'top-right');
         });
 
         if(!this.#swipe) return;
+        if(!this.#sketch) return;
         this.#mapview?.ui.add(this.#swipe);
+        this.#mapview?.ui.add(this.#sketch, 'bottom-left');
     }
 
-    filterData(e: any, layerView: any) {
-        const selectedBrightness = e.target.getAttribute('data-bright');
 
-        layerView.filter = {
-            where: "BRIGHT_T31 < " + selectedBrightness
+    // check back on this! its not working as expected
+    updateBrightness = async (brightness: number) => {
+        if(this.#brightnessLayer) {
+            this.#brightnessLayer.filter = {
+                where: "BRIGHT_T31 < " + brightness
+            };
         }
     }
 }
