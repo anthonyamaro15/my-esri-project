@@ -52,3 +52,7 @@ body,
 .brightness:hover {
 	background-color: dimgrey;
 }
+
+.esri-editor .esri-item-list__scroller {
+  max-height: 350px;
+}

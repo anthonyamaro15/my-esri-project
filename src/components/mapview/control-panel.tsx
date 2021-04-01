@@ -29,6 +29,7 @@ const ControlPanel = () => {
             </div>
             </div> 
 
+            <div id="editorDiv"></div>
         </div>
 
     )
